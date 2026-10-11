@@ -1,0 +1,26 @@
+{
+  "_comment": "TEMPLATE ONLY. Download the real google-services.json from the Firebase console (Project settings > Your apps > Android app with package com.triggerconnect.app) and save it as app/google-services.json. FCM works on the FREE Spark plan. The real file is gitignored.",
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "your-firebase-project-id",
+    "storage_bucket": "your-firebase-project-id.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "android_client_info": {
+          "package_name": "com.triggerconnect.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        { "current_key": "REPLACE_WITH_ANDROID_API_KEY" }
+      ],
+      "services": {
+        "appinvite_service": { "other_platform_oauth_client": [] }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

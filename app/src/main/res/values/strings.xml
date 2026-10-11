@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- app_name is injected from gradle.properties via resValue in app/build.gradle.kts -->
+
+    <!-- Notification channels -->
+    <string name="channel_id_normal" translatable="false">triggers_normal</string>
+    <string name="channel_id_important" translatable="false">triggers_important</string>
+    <string name="channel_id_urgent" translatable="false">triggers_urgent</string>
+    <string name="channel_name_normal">Triggers</string>
+    <string name="channel_name_important">Important triggers</string>
+    <string name="channel_name_urgent">Urgent triggers</string>
+    <string name="channel_desc_normal">Standard trigger notifications</string>
+    <string name="channel_desc_important">Important trigger notifications</string>
+    <string name="channel_desc_urgent">Urgent trigger notifications requiring attention</string>
+
+    <!-- Onboarding -->
+    <string name="welcome_title">Welcome to %1$s</string>
+    <string name="welcome_subtitle">One tap to reach the people and groups who matter. No email, no password — just your name.</string>
+    <string name="enter_your_name">Enter your name</string>
+    <string name="create_account">Create Account</string>
+    <string name="already_have_account">I already have a code</string>
+
+    <!-- Code display -->
+    <string name="your_login_code">Your login code</string>
+    <string name="code_explain">Save this six-digit code. You\'ll use it to sign in on any device. We only show it once — keep it private.</string>
+    <string name="copy_code">Copy code</string>
+    <string name="code_copied">Code copied</string>
+    <string name="i_saved_it">I\'ve saved it — continue</string>
+
+    <!-- Login -->
+    <string name="login">Login</string>
+    <string name="login_title">Enter your six-digit code</string>
+    <string name="create_new_account">Create new account</string>
+    <string name="invalid_code">That code wasn\'t recognised. Check the digits and try again.</string>
+    <string name="too_many_attempts">Too many attempts. Please wait a moment before trying again.</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_people">People</string>
+    <string name="nav_groups">Groups</string>
+    <string name="nav_scan">Scan</string>
+    <string name="nav_history">History</string>
+
+    <!-- Dashboard -->
+    <string name="trigger">TRIGGER</string>
+    <string name="select_recipient">Select a person or group</string>
+    <string name="no_recipient">No recipient selected</string>
+    <string name="tap_to_choose_message">Tap to choose or write a message</string>
+    <string name="offline_banner">You\'re offline. Triggers will be unavailable until you reconnect.</string>
+
+    <!-- Common -->
+    <string name="retry">Retry</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="acknowledge">Acknowledge</string>
+    <string name="settings">Settings</string>
+    <string name="logout">Log out</string>
+    <string name="delete_account">Delete account</string>
+</resources>

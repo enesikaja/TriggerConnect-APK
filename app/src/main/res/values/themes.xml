@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base app theme. Compose draws the real UI; this only styles the window
+         before Compose is attached and provides the splash-screen config. -->
+    <style name="Theme.TriggerConnect" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/graphite</item>
+        <item name="android:navigationBarColor">@color/graphite</item>
+        <item name="android:windowBackground">@color/graphite</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
+    </style>
+
+    <!-- Android 12+ splash screen -->
+    <style name="Theme.TriggerConnect.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/graphite</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.TriggerConnect</item>
+    </style>
+
+</resources>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification channels reference the ringtone by a stable resource-name URI. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/trigger_alert" />

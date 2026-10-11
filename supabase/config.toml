@@ -1,0 +1,32 @@
+# Supabase CLI project config.
+# `supabase link --project-ref <ref>` then `supabase db push` / `supabase functions deploy`.
+project_id = "trigger-connect"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[auth]
+enable_signup = true
+# Email provider is used internally for the six-digit-code bootstrap flow.
+# No email is ever sent; accounts are created pre-confirmed by the Edge Functions.
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+# auth-register / auth-login run before a user session exists, so they must not
+# require a user JWT at the gateway (they perform their own validation).
+[functions.auth-register]
+verify_jwt = false
+
+[functions.auth-login]
+verify_jwt = false
+
+# All other functions require a valid user JWT (default verify_jwt = true).

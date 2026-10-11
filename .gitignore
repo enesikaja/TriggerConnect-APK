@@ -1,0 +1,41 @@
+# Gradle / build
+.gradle/
+.kotlin/
+build/
+*/build/
+dist/
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore & signing secrets — NEVER commit these
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# Firebase config (contains project identifiers; provide via CI/local only)
+app/google-services.json
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+.env
+.env.*
+!.env.example
+
+# Service account keys — NEVER commit
+*service-account*.json
+fcm-service-account.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

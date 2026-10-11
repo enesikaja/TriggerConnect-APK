@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Electric-blue bolt centered in the adaptive icon safe zone -->
+    <path
+        android:fillColor="#2F6BFF"
+        android:pathData="M59,30 L41,58 L52,58 L49,78 L67,50 L56,50 Z" />
+    <path
+        android:strokeColor="#4F8BFF"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M59,30 L41,58 L52,58 L49,78 L67,50 L56,50 Z" />
+</vector>
