@@ -75,6 +75,7 @@ fun ScanScreen(
             if (cameraPermission.status.isGranted) {
                 CameraQrScanner(
                     onCode = viewModel::onScanned,
+                    scanningEnabled = !state.resolving && state.preview == null && !state.working,
                     modifier = Modifier.fillMaxSize(),
                 )
                 Column(

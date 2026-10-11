@@ -8,7 +8,11 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -19,6 +23,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * A CameraX preview with ML Kit QR analysis. Invokes [onCode] exactly once with
@@ -29,13 +34,34 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Composable
 fun CameraQrScanner(
     onCode: (String) -> Unit,
+    scanningEnabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
     val handled = remember { AtomicBoolean(false) }
+    val disposed = remember { AtomicBoolean(false) }
+    val cameraProvider = remember { AtomicReference<ProcessCameraProvider?>(null) }
     val scanner = remember { BarcodeScanning.getClient() }
+    val currentOnCode by rememberUpdatedState(onCode)
+    val currentScanningEnabled by rememberUpdatedState(scanningEnabled)
+
+    // Allow another QR after a failed resolve or after the confirmation dialog
+    // is dismissed. Previously `handled` stayed true for the lifetime of this
+    // screen, so the camera silently ignored every later QR.
+    LaunchedEffect(scanningEnabled) {
+        if (scanningEnabled) handled.set(false)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            disposed.set(true)
+            cameraProvider.get()?.unbindAll()
+            scanner.close()
+            analysisExecutor.shutdown()
+        }
+    }
 
     AndroidView(
         modifier = modifier,
@@ -45,7 +71,9 @@ fun CameraQrScanner(
             }
             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
             cameraProviderFuture.addListener({
-                val cameraProvider = cameraProviderFuture.get()
+                if (disposed.get()) return@addListener
+                val provider = cameraProviderFuture.get()
+                cameraProvider.set(provider)
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
@@ -54,7 +82,7 @@ fun CameraQrScanner(
                     .build()
                 analysis.setAnalyzer(analysisExecutor) { imageProxy ->
                     val mediaImage = imageProxy.image
-                    if (mediaImage == null || handled.get()) {
+                    if (mediaImage == null || !currentScanningEnabled || handled.get()) {
                         imageProxy.close()
                         return@setAnalyzer
                     }
@@ -68,14 +96,14 @@ fun CameraQrScanner(
                                 .firstOrNull { it.format == Barcode.FORMAT_QR_CODE }
                                 ?.rawValue
                             if (value != null && handled.compareAndSet(false, true)) {
-                                onCode(value)
+                                currentOnCode(value)
                             }
                         }
                         .addOnCompleteListener { imageProxy.close() }
                 }
                 runCatching {
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
+                    provider.unbindAll()
+                    provider.bindToLifecycle(
                         lifecycleOwner,
                         CameraSelector.DEFAULT_BACK_CAMERA,
                         preview,

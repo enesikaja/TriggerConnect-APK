@@ -10,6 +10,21 @@ A production-grade, native **Android (Kotlin / Jetpack Compose)** app optimized 
 
 ---
 
+## 📲 Download & install (v1.0.3)
+
+**➡️ [Download the APK](https://github.com/enesikaja/TriggerConnect-APK/raw/main/download/trigger-connect.apk)** (~46 MB) · [SHA-256](download/trigger-connect.apk.sha256)
+
+Install on an Android phone (tested on Samsung):
+1. Open that link in the phone's browser and download the APK.
+2. When prompted, allow **"Install unknown apps"** for your browser/file manager.
+3. Open the downloaded file and install, then launch **Trigger Connect**.
+4. Tap **Create Account**, enter a name → you get a 6-digit code. Do this on both phones (two names/codes).
+5. On phone A open **People ▸ My QR**; on phone B open **Scan** and scan it → accept the request. Now either phone can pick the other and press **TRIGGER** — the other phone gets a push notification.
+
+This debug build is wired to the live backend and FCM, so it works immediately.
+
+---
+
 ## ✅ Live backend already provisioned
 
 A free Supabase backend for this app is **already deployed and smoke-tested**:
