@@ -3,6 +3,7 @@ import { Errors, jsonResponse } from "../_shared/http.ts";
 import { adminClient } from "../_shared/supabase.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { hashInviteToken } from "../_shared/crypto.ts";
+import { sendPush } from "../_shared/fcm.ts";
 
 Deno.serve(async (req) => {
   const pre = handleOptions(req);
@@ -51,6 +52,25 @@ Deno.serve(async (req) => {
     await admin.from("audit_logs").insert({
       actor_id: user.id, action: "CONNECTION_REQUEST", target_id: targetId,
     });
+
+    // Notify the addressee with a push (best-effort; never fails the request).
+    try {
+      const { data: me } = await admin.from("users").select("display_name").eq("id", user.id).single();
+      const requesterName = me?.display_name ?? "Someone";
+      const { data: devices } = await admin.from("devices").select("fcm_token").eq("user_id", targetId);
+      const tokens = (devices ?? []).map((d) => d.fcm_token as string);
+      if (tokens.length > 0) {
+        const results = await sendPush(tokens, {
+          title: "New connection request",
+          body: `${requesterName} wants to connect with you`,
+          data: { type: "connection" },
+        });
+        const dead = results.filter((r) => r.unregistered).map((r) => r.token);
+        if (dead.length > 0) await admin.from("devices").delete().in("fcm_token", dead);
+      }
+    } catch (_notifyErr) {
+      // ignore push failures
+    }
 
     return jsonResponse({ ok: true, status: "PENDING" });
   } catch (_e) {

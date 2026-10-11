@@ -17,8 +17,9 @@ import com.triggerconnect.app.R
 object NotificationHelper {
 
     const val EXTRA_EVENT_ID = "extra_event_id"
+    const val EXTRA_OPEN_TAB = "extra_open_tab"
 
-    @SuppressLint("MissingPermission") // guarded by hasPermission() before notify()
+    /** Trigger notification — tapping opens the event details. */
     fun show(
         context: Context,
         eventId: String,
@@ -27,6 +28,50 @@ object NotificationHelper {
         priority: String,
         sound: Boolean,
         vibration: Boolean,
+    ): Boolean = post(
+        context = context,
+        notifId = eventId.hashCode(),
+        title = title,
+        body = body,
+        priority = priority,
+        sound = sound,
+        vibration = vibration,
+        eventIdExtra = if (eventId == "notification-test") null else eventId,
+        openTab = null,
+    )
+
+    /** Connection-request / generic notification — tapping opens the given tab. */
+    fun showSimple(
+        context: Context,
+        tag: String,
+        title: String,
+        body: String,
+        sound: Boolean,
+        vibration: Boolean,
+        openTab: String? = null,
+    ): Boolean = post(
+        context = context,
+        notifId = tag.hashCode(),
+        title = title,
+        body = body,
+        priority = "IMPORTANT",
+        sound = sound,
+        vibration = vibration,
+        eventIdExtra = null,
+        openTab = openTab,
+    )
+
+    @SuppressLint("MissingPermission") // guarded by hasPermission() before notify()
+    private fun post(
+        context: Context,
+        notifId: Int,
+        title: String,
+        body: String,
+        priority: String,
+        sound: Boolean,
+        vibration: Boolean,
+        eventIdExtra: String?,
+        openTab: String?,
     ): Boolean {
         if (!hasPermission(context) || !NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
         NotificationChannels.ensureCreated(context, sound, vibration)
@@ -36,20 +81,18 @@ object NotificationHelper {
 
         val tapIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            if (eventId != "notification-test") putExtra(EXTRA_EVENT_ID, eventId)
+            if (eventIdExtra != null) putExtra(EXTRA_EVENT_ID, eventIdExtra)
+            if (openTab != null) putExtra(EXTRA_OPEN_TAB, openTab)
         }
         val pending = PendingIntent.getActivity(
             context,
-            eventId.hashCode(),
+            notifId,
             tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
         val isUrgent = priority.equals("URGENT", ignoreCase = true)
-        val notification = NotificationCompat.Builder(
-            context,
-            NotificationChannels.channelIdFor(context, priority, sound, vibration),
-        )
+        val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(ContextCompat.getColor(context, R.color.accent))
             .setContentTitle(title)
@@ -62,8 +105,7 @@ object NotificationHelper {
             .setOnlyAlertOnce(true)
             .build()
 
-        // Dedup: same eventId -> same notification id -> replaces, never stacks.
-        NotificationManagerCompat.from(context).notify(eventId.hashCode(), notification)
+        NotificationManagerCompat.from(context).notify(notifId, notification)
         return true
     }
 

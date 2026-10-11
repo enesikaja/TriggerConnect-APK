@@ -10,7 +10,7 @@ A production-grade, native **Android (Kotlin / Jetpack Compose)** app optimized 
 
 ---
 
-## 📲 Download & install (v1.0.3)
+## 📲 Download & install (v1.0.4)
 
 **➡️ [Download the APK](https://github.com/enesikaja/TriggerConnect-APK/raw/main/download/trigger-connect.apk)** (~46 MB) · [SHA-256](download/trigger-connect.apk.sha256)
 

@@ -71,37 +71,44 @@ fun CameraQrScanner(
             }
             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
             cameraProviderFuture.addListener({
-                if (disposed.get()) return@addListener
-                val provider = cameraProviderFuture.get()
-                cameraProvider.set(provider)
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                analysis.setAnalyzer(analysisExecutor) { imageProxy ->
-                    val mediaImage = imageProxy.image
-                    if (mediaImage == null || !currentScanningEnabled || handled.get()) {
-                        imageProxy.close()
-                        return@setAnalyzer
-                    }
-                    val input = InputImage.fromMediaImage(
-                        mediaImage,
-                        imageProxy.imageInfo.rotationDegrees,
-                    )
-                    scanner.process(input)
-                        .addOnSuccessListener { barcodes ->
-                            val value = barcodes
-                                .firstOrNull { it.format == Barcode.FORMAT_QR_CODE }
-                                ?.rawValue
-                            if (value != null && handled.compareAndSet(false, true)) {
-                                currentOnCode(value)
-                            }
-                        }
-                        .addOnCompleteListener { imageProxy.close() }
-                }
+                // Whole body guarded: camera init throws on some OEM devices
+                // (missing/underreported cameras, vendor HAL quirks) and that
+                // must never crash the app — the screen just shows no preview.
                 runCatching {
+                    if (disposed.get()) return@runCatching
+                    val provider = cameraProviderFuture.get()
+                    cameraProvider.set(provider)
+                    val preview = Preview.Builder().build().also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
+                    val analysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                    analysis.setAnalyzer(analysisExecutor) { imageProxy ->
+                        try {
+                            val mediaImage = imageProxy.image
+                            if (mediaImage == null || disposed.get() || !currentScanningEnabled || handled.get()) {
+                                imageProxy.close()
+                                return@setAnalyzer
+                            }
+                            val input = InputImage.fromMediaImage(
+                                mediaImage,
+                                imageProxy.imageInfo.rotationDegrees,
+                            )
+                            scanner.process(input)
+                                .addOnSuccessListener { barcodes ->
+                                    val value = barcodes
+                                        .firstOrNull { it.format == Barcode.FORMAT_QR_CODE }
+                                        ?.rawValue
+                                    if (value != null && !disposed.get() && handled.compareAndSet(false, true)) {
+                                        currentOnCode(value)
+                                    }
+                                }
+                                .addOnCompleteListener { runCatching { imageProxy.close() } }
+                        } catch (_: Throwable) {
+                            runCatching { imageProxy.close() }
+                        }
+                    }
                     provider.unbindAll()
                     provider.bindToLifecycle(
                         lifecycleOwner,

@@ -65,7 +65,10 @@ fun AppRoot(
     onPendingEventConsumed: () -> Unit,
 ) {
     val navController = rememberNavController()
-    val start = remember { if (authState is AuthState.Authenticated) Routes.HOME else Routes.WELCOME }
+    // Start at the nested "main" graph (not HOME directly) — HOME is a child of
+    // that graph, and NavHost's start destination must be a direct child of the
+    // root graph, otherwise it crashes on cold start for logged-in users.
+    val start = remember { if (authState is AuthState.Authenticated) GRAPH_MAIN else Routes.WELCOME }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route

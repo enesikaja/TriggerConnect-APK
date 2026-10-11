@@ -33,20 +33,35 @@ class TriggerMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
-        val eventId = data["eventId"] ?: return
-        val title = data["title"] ?: "Trigger"
-        val body = data["body"].orEmpty()
-        val priority = data["priority"] ?: "NORMAL"
-        // FCM owns this worker thread only until the callback returns. Post here,
-        // before launching any network work that may outlive the service.
+        // FCM owns this worker thread only until the callback returns. Read prefs
+        // here, before launching any network work that may outlive the service.
         val prefs = runBlocking {
             withTimeoutOrNull(1_000) { preferencesStore.prefs.first() }
         } ?: PreferencesStore.Prefs()
-        NotificationHelper.show(
-            applicationContext, eventId, title, body, priority,
-            sound = prefs.soundEnabled,
-            vibration = prefs.vibrationEnabled,
-        )
-        appScope.launch { triggerRepository.refreshHistory() }
+
+        when (data["type"]) {
+            "connection" -> {
+                val title = data["title"] ?: "New connection request"
+                val body = data["body"].orEmpty()
+                val tag = data["connectionId"] ?: ("conn-" + body.hashCode())
+                NotificationHelper.showSimple(
+                    applicationContext, tag, title, body,
+                    sound = prefs.soundEnabled, vibration = prefs.vibrationEnabled,
+                    openTab = "people",
+                )
+            }
+            else -> {
+                val eventId = data["eventId"] ?: return
+                val title = data["title"] ?: "Trigger"
+                val body = data["body"].orEmpty()
+                val priority = data["priority"] ?: "NORMAL"
+                NotificationHelper.show(
+                    applicationContext, eventId, title, body, priority,
+                    sound = prefs.soundEnabled,
+                    vibration = prefs.vibrationEnabled,
+                )
+                appScope.launch { triggerRepository.refreshHistory() }
+            }
+        }
     }
 }
