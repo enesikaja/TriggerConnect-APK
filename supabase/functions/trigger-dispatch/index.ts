@@ -179,11 +179,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Status reflects the DISPATCH outcome, not device delivery. SKIPPED means
+    // the recipient simply has no registered device yet — the event is still
+    // recorded and shows in their in-app history, so an all-SKIPPED fan-out is
+    // DISPATCHED, not FAILED. Only genuine push-provider failures mark FAILED.
     const finalStatus = recipients.length === 0
       ? "DISPATCHED"
       : anyAccepted
       ? (anyFailed ? "PARTIAL_FAILURE" : "DISPATCHED")
-      : "FAILED";
+      : anyFailed
+      ? "FAILED"
+      : "DISPATCHED"; // all recipients SKIPPED (no devices) — not a failure
     await admin.from("trigger_events").update({ status: finalStatus }).eq("event_id", event.event_id);
 
     await admin.from("audit_logs").insert({

@@ -2,7 +2,7 @@ package com.triggerconnect.app.data.repository
 
 import com.triggerconnect.app.core.AppResult
 import com.triggerconnect.app.core.Constants
-import com.triggerconnect.app.core.map
+import com.triggerconnect.app.data.remote.mapThrowable
 import com.triggerconnect.app.data.local.SecureStorage
 import com.triggerconnect.app.data.local.AppDatabase
 import com.triggerconnect.app.data.remote.SupabaseApi
@@ -18,10 +18,12 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AuthRepositoryImpl(
     private val client: SupabaseClient,
@@ -47,6 +49,20 @@ class AuthRepositoryImpl(
                             _authState.value = AuthState.Authenticated(currentProfile(id))
                         }
                     }
+                    is SessionStatus.RefreshFailure -> {
+                        // Transient refresh problem (offline, server hiccup).
+                        // KEEP the stored session and let the user work from
+                        // cache — wiping here would log people out (and lose
+                        // accounts whose six-digit code was never saved) just
+                        // because the app was opened without internet.
+                        // A truly revoked session surfaces as NotAuthenticated.
+                        val id = secureStorage.userId
+                        if (id != null) {
+                            _authState.value = AuthState.Authenticated(currentProfile(id))
+                        } else {
+                            _authState.value = AuthState.Unauthenticated
+                        }
+                    }
                     else -> {
                         val name = status::class.simpleName.orEmpty()
                         // While the SDK is still loading/initializing, stay "Unknown"
@@ -57,7 +73,10 @@ class AuthRepositoryImpl(
                             AuthState.Unknown
                         } else {
                             secureStorage.clear()
-                            database.clearAllTables()
+                            // clearAllTables() must NOT run on the main thread
+                            // (Room throws). appScope is Default, but force IO
+                            // to be correct regardless of the calling thread.
+                            withContext(Dispatchers.IO) { database.clearAllTables() }
                             AuthState.Unauthenticated
                         }
                     }
@@ -79,12 +98,23 @@ class AuthRepositoryImpl(
             name = Constants.Functions.REGISTER,
             body = RegisterRequest(displayName = displayName.trim()),
         )
-        return result.map { auth ->
-            establishSession(auth)
-            RegistrationResult(
-                profile = UserProfile(auth.userId, auth.displayName),
-                loginCode = auth.loginCode.orEmpty(),
-            )
+        return when (result) {
+            is AppResult.Failure -> result
+            is AppResult.Success -> try {
+                val auth = result.data
+                establishSession(auth)
+                AppResult.Success(
+                    RegistrationResult(
+                        profile = UserProfile(auth.userId, auth.displayName),
+                        loginCode = auth.loginCode.orEmpty(),
+                    ),
+                )
+            } catch (e: Throwable) {
+                // signInWith talks to GoTrue and THROWS on failure (flaky
+                // network, token-endpoint rate limit). An uncaught throw here
+                // crashed the app right after a correct code was entered.
+                AppResult.Failure(mapThrowable(e))
+            }
         }
     }
 
@@ -93,9 +123,17 @@ class AuthRepositoryImpl(
             name = Constants.Functions.LOGIN,
             body = LoginRequest(code = code.trim(), deviceId = secureStorage.deviceId),
         )
-        return result.map { auth ->
-            establishSession(auth)
-            UserProfile(auth.userId, auth.displayName)
+        return when (result) {
+            is AppResult.Failure -> result
+            is AppResult.Success -> try {
+                val auth = result.data
+                establishSession(auth)
+                AppResult.Success(UserProfile(auth.userId, auth.displayName))
+            } catch (e: Throwable) {
+                // See register(): never let a session-mint failure escape as
+                // an uncaught exception — surface it as a retryable error.
+                AppResult.Failure(mapThrowable(e))
+            }
         }
     }
 
@@ -112,9 +150,14 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun logout() {
-        runCatching { client.auth.signOut() }
-        secureStorage.clear()
-        database.clearAllTables()
+        // All of this is off the main thread: signOut() hits the network and
+        // clearAllTables() throws if run on the UI thread. logout() is invoked
+        // from a ViewModel's main-dispatcher scope, so wrap the blocking work.
+        withContext(Dispatchers.IO) {
+            runCatching { client.auth.signOut() }
+            secureStorage.clear()
+            runCatching { database.clearAllTables() }
+        }
         _authState.value = AuthState.Unauthenticated
     }
 

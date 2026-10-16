@@ -137,7 +137,7 @@ fun GroupDetailsScreen(
             item {
                 Text("Members", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            items(state.members, key = { it.userId }) { member ->
+            items(state.members, key = { "member-${it.userId}" }) { member ->
                 MemberRow(
                     name = member.displayName,
                     role = member.role,

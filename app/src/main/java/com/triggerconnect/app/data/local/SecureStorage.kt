@@ -15,11 +15,34 @@ import java.util.UUID
  */
 class SecureStorage(context: Context) {
 
-    private val prefs: SharedPreferences = run {
+    // Lazy: Keystore-backed prefs can take seconds to open on some devices.
+    // Constructing this eagerly on the main thread caused startup ANRs, so the
+    // heavy work happens on first access — warmed up from a background thread
+    // in TriggerConnectApp.onCreate before the UI normally needs it.
+    private val prefs: SharedPreferences by lazy {
+        // Keystore state can rot on some devices (vendor bugs, OS updates,
+        // backup restores). If the encrypted file can no longer be opened,
+        // wipe it and start fresh (user re-logs in) instead of crash-looping.
+        try {
+            create(context)
+        } catch (_: Exception) {
+            context.deleteSharedPreferences(Constants.SecureKeys.PREFS_FILE)
+            try {
+                create(context)
+            } catch (_: Exception) {
+                // Last resort: plain prefs under a different name. Session
+                // tokens are short-lived and the device is user-locked; a
+                // working app beats a permanent crash loop.
+                context.getSharedPreferences(Constants.SecureKeys.PREFS_FILE + "_fb", Context.MODE_PRIVATE)
+            }
+        }
+    }
+
+    private fun create(context: Context): SharedPreferences {
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
-        EncryptedSharedPreferences.create(
+        return EncryptedSharedPreferences.create(
             context,
             Constants.SecureKeys.PREFS_FILE,
             masterKey,
@@ -59,6 +82,11 @@ class SecureStorage(context: Context) {
         set(value) = prefs.edit().putString(KEY_RAW_SESSION, value).apply()
 
     val hasSession: Boolean get() = !rawSession.isNullOrBlank() && !userId.isNullOrBlank()
+
+    /** Forces the lazy Keystore/prefs initialization; call from a background thread. */
+    fun warmUp() {
+        prefs
+    }
 
     fun clear() {
         val installationId = deviceId

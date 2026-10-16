@@ -86,7 +86,7 @@ fun PeopleScreen(
             ) {
                 if (state.requests.isNotEmpty()) {
                     item { SectionLabel("Requests") }
-                    items(state.requests, key = { it.connectionId }) { req ->
+                    items(state.requests, key = { "req-${it.connectionId}" }) { req ->
                         RequestRow(
                             name = req.fromDisplayName,
                             onAccept = { viewModel.respond(req.connectionId, true) },
@@ -96,7 +96,7 @@ fun PeopleScreen(
                 }
                 if (state.contacts.isNotEmpty()) {
                     item { SectionLabel("Contacts") }
-                    items(state.contacts, key = { it.connectionId }) { contact ->
+                    items(state.contacts, key = { "contact-${it.connectionId}" }) { contact ->
                         ContactRow(
                             name = contact.displayName,
                             onTrigger = {
